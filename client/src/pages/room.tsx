@@ -35,6 +35,33 @@ function getYouTubeEmbedUrl(videoId: string): string {
   return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&modestbranding=1`;
 }
 
+// Helper to get Vimeo video ID
+function getVimeoVideoId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /vimeo\.com\/(\d+)/,
+    /vimeo\.com\/groups\/[^/]+\/videos\/(\d+)/,
+    /^\d+$/ // Direct video ID
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// Helper to get Vimeo embed URL
+function getVimeoEmbedUrl(videoId: string): string {
+  return `https://player.vimeo.com/video/${videoId}`;
+}
+
+// Helper to check if URL is a video file
+function isVideoFile(url: string): boolean {
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.mkv', '.avi'];
+  return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+}
+
 export default function Room() {
   const [, params] = useRoute("/room/:id");
   const roomId = params ? parseInt(params.id) : null;
@@ -260,6 +287,32 @@ export default function Room() {
                     onLoad={() => setIsReady(true)}
                     data-testid="video-player-youtube"
                   />
+                ) : getVimeoVideoId(videoUrl) ? (
+                  <iframe
+                    src={getVimeoEmbedUrl(getVimeoVideoId(videoUrl)!)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media"
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-vimeo"
+                  />
+                ) : isVideoFile(videoUrl) ? (
+                  <video
+                    width="100%"
+                    height="100%"
+                    controls
+                    autoPlay={isPlaying}
+                    onPlay={onPlay}
+                    onPause={onPause}
+                    className="w-full h-full"
+                    data-testid="video-player-html5"
+                  >
+                    <source src={videoUrl} />
+                    Tarayıcınız HTML5 video oynatmayı desteklemiyor.
+                  </video>
                 ) : (
                   <ReactPlayer
                     ref={playerRef}
@@ -280,17 +333,6 @@ export default function Room() {
                         variant: "destructive"
                       });
                     }}
-                    config={{
-                      vimeo: {
-                        playerOptions: { title: false }
-                      },
-                      html5: {
-                        attributes: {
-                          controlsList: "nodownload",
-                          crossOrigin: "anonymous"
-                        }
-                      }
-                    }}
                   />
                 )}
                 {!isReady && (
@@ -303,7 +345,7 @@ export default function Room() {
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-muted-foreground">
                 <Play className="w-16 h-16 mb-4 opacity-50" />
-                <p>Oynatmak için bir video URL'i girin</p>
+                <p>YouTube, Vimeo, MP4 veya web linklerini oynat</p>
               </div>
             )}
             
