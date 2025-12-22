@@ -1,38 +1,69 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { users, rooms, messages, type User, type InsertUser, type Room, type InsertRoom, type Message, type InsertMessage } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
+import { authStorage, type IAuthStorage } from "./replit_integrations/auth/storage";
 
-// modify the interface with any CRUD methods
-// you might need
-
-export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+export interface IStorage extends IAuthStorage {
+  // Rooms
+  createRoom(room: InsertRoom): Promise<Room>;
+  getRooms(): Promise<Room[]>;
+  getRoom(id: number): Promise<Room | undefined>;
+  
+  // Messages
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessages(roomId: number): Promise<(Message & { user: User })[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
+  // Auth methods (delegated or re-implemented if needed, but we can reuse the mixin pattern or just implement)
+  // Since we are using the blueprint's authStorage, we can just use it or implement the methods.
+  // Ideally, we extend or compose.
+  
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    return authStorage.getUser(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async upsertUser(user: InsertUser): Promise<User> {
+    return authStorage.upsertUser(user);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  // Room methods
+  async createRoom(room: InsertRoom): Promise<Room> {
+    const [newRoom] = await db.insert(rooms).values(room).returning();
+    return newRoom;
+  }
+
+  async getRooms(): Promise<Room[]> {
+    return await db.select().from(rooms).orderBy(desc(rooms.createdAt));
+  }
+
+  async getRoom(id: number): Promise<Room | undefined> {
+    const [room] = await db.select().from(rooms).where(eq(rooms.id, id));
+    return room;
+  }
+
+  // Message methods
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async getMessages(roomId: number): Promise<(Message & { user: User })[]> {
+    const results = await db
+      .select({
+        message: messages,
+        user: users,
+      })
+      .from(messages)
+      .where(eq(messages.roomId, roomId))
+      .leftJoin(users, eq(messages.userId, users.id))
+      .orderBy(messages.createdAt);
+
+    // Filter out null users if any (shouldn't happen with proper constraints) and flatten
+    return results
+      .filter(r => r.user !== null)
+      .map(r => ({ ...r.message, user: r.user! }));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
