@@ -53,6 +53,26 @@ export async function registerRoutes(
     res.json(messages);
   });
 
+  app.delete(api.rooms.delete.path, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Giriş yapmalısınız" });
+    }
+    const user = req.user as any;
+    const id = Number(req.params.id);
+    const room = await storage.getRoom(id);
+    
+    if (!room) {
+      return res.status(404).json({ message: "Oda bulunamadı" });
+    }
+    
+    if (room.hostId !== user.claims.sub) {
+      return res.status(403).json({ message: "Sadece oda sahibi kapatabilir" });
+    }
+    
+    await storage.deleteRoom(id);
+    res.status(200).json({ message: "Oda kapatıldı" });
+  });
+
   // === Seeding ===
   const existingRooms = await storage.getRooms();
   if (existingRooms.length === 0) {
@@ -118,7 +138,7 @@ export async function registerRoutes(
               client.send(JSON.stringify({ type: "video-update", ...videoState }));
             }
           }
-        } else if (message.type === "chat-message") {
+        } else if (message.type === "chat_message") {
           const { roomId, content, userId } = message;
           // Save to DB
           const savedMessage = await storage.createMessage({
@@ -132,8 +152,11 @@ export async function registerRoutes(
           
           // Broadcast
           const broadcastMsg = JSON.stringify({
-            type: "chat-message",
-            message: { ...savedMessage, user },
+            type: "chat_message",
+            content: savedMessage.content,
+            userId: savedMessage.userId,
+            createdAt: savedMessage.createdAt,
+            user: user ? { id: user.id, email: user.email } : null,
           });
           
           for (const [client, metadata] of clients.entries()) {

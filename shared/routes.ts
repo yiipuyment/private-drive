@@ -34,6 +34,16 @@ export const api = {
         200: z.array(z.custom<typeof messages.$inferSelect & { user: { id: string, email: string } }>()),
       },
     },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/rooms/:id',
+      responses: {
+        200: z.object({ message: z.string() }),
+        401: z.object({ message: z.string() }),
+        403: z.object({ message: z.string() }),
+        404: z.object({ message: z.string() }),
+      },
+    },
   },
 };
 

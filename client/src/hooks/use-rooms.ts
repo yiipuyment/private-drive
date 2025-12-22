@@ -81,3 +81,41 @@ export function useCreateRoom() {
     },
   });
 }
+
+export function useDeleteRoom() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  return useMutation({
+    mutationFn: async (roomId: number) => {
+      const url = buildUrl(api.rooms.delete.path, { id: roomId });
+      const res = await fetch(url, {
+        method: api.rooms.delete.method,
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Oda kapatılamadı");
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.rooms.list.path] });
+      toast({
+        title: "Oda Kapatıldı",
+        description: "Oda başarıyla kapatıldı.",
+      });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hata",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

@@ -1,14 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import { useRoute } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { useRoom, useRoomMessages } from "@/hooks/use-rooms";
+import { useRoom, useRoomMessages, useDeleteRoom } from "@/hooks/use-rooms";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 import ReactPlayer from "react-player";
-import { Send, Play, Pause, Link as LinkIcon, AlertCircle, Loader2 } from "lucide-react";
+import { Send, Play, Pause, Link as LinkIcon, AlertCircle, Loader2, Share2, Trash2, Copy, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { format } from "date-fns";
@@ -19,11 +20,14 @@ export default function Room() {
   const { user, isLoading: authLoading } = useAuth();
   const { data: room, isLoading: roomLoading } = useRoom(roomId || 0);
   const { data: initialMessages } = useRoomMessages(roomId || 0);
+  const deleteRoom = useDeleteRoom();
+  const { toast } = useToast();
 
   const [messages, setMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [urlInput, setUrlInput] = useState("");
+  const [copied, setCopied] = useState(false);
 
   // Player state
   const playerRef = useRef<ReactPlayer>(null);
@@ -65,12 +69,14 @@ export default function Room() {
       console.log("WS Received:", data);
 
       if (data.type === "chat_message") {
-        // Optimistically we might have added it, but let's just push for now
-        // Ideally the message payload includes user info.
-        // For simplicity, we assume the backend broadcasts the full message object or we construct a basic one
-        // The backend should ideally resolve the user from session and send { user: { email, ... }, content, createdAt }
-        // Here we just append whatever we got if it matches structure, or trigger a refetch
-        queryClient.invalidateQueries({ queryKey: [api.rooms.getMessages.path, roomId] });
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          content: data.content,
+          userId: data.userId,
+          roomId,
+          createdAt: data.createdAt,
+          user: data.user
+        }]);
       }
 
       if (data.type === "video_update") {
@@ -100,14 +106,32 @@ export default function Room() {
 
   const handleSendChat = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!chatInput.trim() || !roomId) return;
+    if (!chatInput.trim() || !roomId || !user) return;
 
     sendMessage({
       type: "chat_message",
       roomId,
       content: chatInput,
+      userId: user.id,
     });
     setChatInput("");
+  };
+
+  const handleShareLink = () => {
+    const shareUrl = `${window.location.origin}/room/${roomId}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "Linki kopyaladı",
+      description: "Arkadaşlarınla paylaş!",
+    });
+  };
+
+  const handleCloseRoom = () => {
+    if (window.confirm("Odayı kapatmak istediğine emin misin?")) {
+      deleteRoom.mutate(roomId || 0);
+    }
   };
 
   const handleUrlChange = (e: React.FormEvent) => {
@@ -204,7 +228,13 @@ export default function Room() {
                 config={{
                   youtube: {
                     playerVars: { showinfo: 1 }
-                  }
+                  },
+                  vimeo: {
+                    playerOptions: { title: false }
+                  },
+                  wistia: {
+                    options: { playerColor: "#265089" }
+                  },
                 }}
               />
             ) : (
@@ -240,9 +270,36 @@ export default function Room() {
             </div>
           </div>
           
-          <div className="px-1">
-             <h1 className="text-2xl font-bold text-white font-display mb-1">{room.name}</h1>
-             <p className="text-muted-foreground text-sm">Oda ID: {room.id} • {isConnected ? <span className="text-green-500">Canlı Bağlantı</span> : <span className="text-red-500">Bağlanıyor...</span>}</p>
+          <div className="px-1 flex items-start justify-between">
+             <div>
+               <h1 className="text-2xl font-bold text-white font-display mb-1">{room.name}</h1>
+               <p className="text-muted-foreground text-sm">Oda ID: {room.id} • {isConnected ? <span className="text-green-500">Canlı Bağlantı</span> : <span className="text-red-500">Bağlanıyor...</span>}</p>
+             </div>
+             {room.hostId === user?.id && (
+               <div className="flex gap-2">
+                 <Button
+                   size="sm"
+                   variant="outline"
+                   onClick={handleShareLink}
+                   data-testid="button-share-room"
+                   className="gap-2"
+                 >
+                   {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                   {copied ? "Kopyalandı" : "Davet Et"}
+                 </Button>
+                 <Button
+                   size="sm"
+                   variant="destructive"
+                   onClick={handleCloseRoom}
+                   data-testid="button-close-room"
+                   disabled={deleteRoom.isPending}
+                   className="gap-2"
+                 >
+                   <Trash2 className="w-4 h-4" />
+                   {deleteRoom.isPending ? "Kapatılıyor..." : "Kapat"}
+                 </Button>
+               </div>
+             )}
           </div>
         </div>
 
