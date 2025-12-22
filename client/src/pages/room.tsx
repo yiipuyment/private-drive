@@ -16,9 +16,10 @@ import { format } from "date-fns";
 
 // Helper to extract YouTube video ID from various URL formats
 function getYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\n]+)/,
-    /youtube\.com\/embed\/([^?\n]+)/,
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\n\s]+)/,
+    /youtube\.com\/embed\/([^?\n\s]+)/,
     /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
   ];
   
@@ -27,6 +28,11 @@ function getYouTubeVideoId(url: string): string | null {
     if (match) return match[1];
   }
   return null;
+}
+
+// Helper to create iframe embed for YouTube
+function getYouTubeEmbedUrl(videoId: string): string {
+  return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&modestbranding=1`;
 }
 
 export default function Room() {
@@ -242,49 +248,53 @@ export default function Room() {
           <div className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-white/5 aspect-video relative group bg-black">
             {videoUrl ? (
               <>
-                <ReactPlayer
-                  ref={playerRef}
-                  url={videoUrl}
-                  width="100%"
-                  height="100%"
-                  playing={isPlaying}
-                  controls
-                  onPlay={onPlay}
-                  onPause={onPause}
-                  onProgress={onProgress}
-                  onReady={() => setIsReady(true)}
-                  onError={(e) => {
-                    console.error("Player error:", e);
-                    toast({
-                      title: "Video Oynatılamadı",
-                      description: "URL geçerli bir video değil veya erişilemiyor.",
-                      variant: "destructive"
-                    });
-                  }}
-                  config={{
-                    youtube: {
-                      playerVars: { 
-                        showinfo: 1,
-                        modestbranding: 1,
-                        autoplay: isPlaying ? 1 : 0
+                {getYouTubeVideoId(videoUrl) ? (
+                  <iframe
+                    src={getYouTubeEmbedUrl(getYouTubeVideoId(videoUrl)!)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media"
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-youtube"
+                  />
+                ) : (
+                  <ReactPlayer
+                    ref={playerRef}
+                    url={videoUrl}
+                    width="100%"
+                    height="100%"
+                    playing={isPlaying}
+                    controls
+                    onPlay={onPlay}
+                    onPause={onPause}
+                    onProgress={onProgress}
+                    onReady={() => setIsReady(true)}
+                    onError={(e) => {
+                      console.error("Player error:", e);
+                      toast({
+                        title: "Video Oynatılamadı",
+                        description: "URL geçerli bir video değil veya erişilemiyor.",
+                        variant: "destructive"
+                      });
+                    }}
+                    config={{
+                      vimeo: {
+                        playerOptions: { title: false }
+                      },
+                      html5: {
+                        attributes: {
+                          controlsList: "nodownload",
+                          crossOrigin: "anonymous"
+                        }
                       }
-                    },
-                    vimeo: {
-                      playerOptions: { title: false }
-                    },
-                    wistia: {
-                      options: { playerColor: "#265089" }
-                    },
-                    html5: {
-                      attributes: {
-                        controlsList: "nodownload",
-                        crossOrigin: "anonymous"
-                      }
-                    }
-                  }}
-                />
+                    }}
+                  />
+                )}
                 {!isReady && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 pointer-events-none">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
                     <p className="text-muted-foreground text-sm">Video yükleniyor...</p>
                   </div>
