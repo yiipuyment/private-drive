@@ -9,10 +9,25 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import ReactPlayer from "react-player";
-import { Send, Play, Pause, Link as LinkIcon, AlertCircle, Loader2, Share2, Trash2, Copy, Check } from "lucide-react";
+import { Send, Play, Pause, Link as LinkIcon, AlertCircle, Loader2, Share2, Trash2, Copy, Check, Volume2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { format } from "date-fns";
+
+// Helper to extract YouTube video ID from various URL formats
+function getYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\n]+)/,
+    /youtube\.com\/embed\/([^?\n]+)/,
+    /^([a-zA-Z0-9_-]{11})$/ // Direct video ID
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
 
 export default function Room() {
   const [, params] = useRoute("/room/:id");
@@ -138,13 +153,25 @@ export default function Room() {
     e.preventDefault();
     if (!urlInput || !roomId) return;
     
-    setVideoUrl(urlInput);
+    // Validate and normalize URL
+    let finalUrl = urlInput.trim();
+    
+    // Check if it's a YouTube URL and normalize it
+    const youtubeId = getYouTubeVideoId(finalUrl);
+    if (youtubeId) {
+      finalUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+    } else if (!finalUrl.startsWith('http')) {
+      finalUrl = `https://${finalUrl}`;
+    }
+    
+    setVideoUrl(finalUrl);
+    setUrlInput(finalUrl);
     sendMessage({
       type: "video_update",
       roomId,
       isPlaying: true,
       timestamp: 0,
-      url: urlInput
+      url: finalUrl
     });
   };
 
@@ -212,31 +239,57 @@ export default function Room() {
       <main className="flex-1 container mx-auto p-4 lg:p-6 grid lg:grid-cols-4 gap-6 h-[calc(100vh-64px)]">
         {/* Left: Video Player */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <div className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-white/5 aspect-video relative group">
+          <div className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-white/5 aspect-video relative group bg-black">
             {videoUrl ? (
-              <ReactPlayer
-                ref={playerRef}
-                url={videoUrl}
-                width="100%"
-                height="100%"
-                playing={isPlaying}
-                controls
-                onPlay={onPlay}
-                onPause={onPause}
-                onProgress={onProgress}
-                onReady={() => setIsReady(true)}
-                config={{
-                  youtube: {
-                    playerVars: { showinfo: 1 }
-                  },
-                  vimeo: {
-                    playerOptions: { title: false }
-                  },
-                  wistia: {
-                    options: { playerColor: "#265089" }
-                  },
-                }}
-              />
+              <>
+                <ReactPlayer
+                  ref={playerRef}
+                  url={videoUrl}
+                  width="100%"
+                  height="100%"
+                  playing={isPlaying}
+                  controls
+                  onPlay={onPlay}
+                  onPause={onPause}
+                  onProgress={onProgress}
+                  onReady={() => setIsReady(true)}
+                  onError={(e) => {
+                    console.error("Player error:", e);
+                    toast({
+                      title: "Video Oynatılamadı",
+                      description: "URL geçerli bir video değil veya erişilemiyor.",
+                      variant: "destructive"
+                    });
+                  }}
+                  config={{
+                    youtube: {
+                      playerVars: { 
+                        showinfo: 1,
+                        modestbranding: 1,
+                        autoplay: isPlaying ? 1 : 0
+                      }
+                    },
+                    vimeo: {
+                      playerOptions: { title: false }
+                    },
+                    wistia: {
+                      options: { playerColor: "#265089" }
+                    },
+                    html5: {
+                      attributes: {
+                        controlsList: "nodownload",
+                        crossOrigin: "anonymous"
+                      }
+                    }
+                  }}
+                />
+                {!isReady && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                    <p className="text-muted-foreground text-sm">Video yükleniyor...</p>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-muted-foreground">
                 <Play className="w-16 h-16 mb-4 opacity-50" />
@@ -245,7 +298,7 @@ export default function Room() {
             )}
             
             {!isConnected && (
-              <div className="absolute top-4 right-4 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-lg">
+              <div className="absolute top-4 right-4 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-lg z-10">
                 Bağlantı koptu
               </div>
             )}
