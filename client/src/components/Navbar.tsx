@@ -17,11 +17,11 @@ export function Navbar() {
   return (
     <nav className="border-b border-white/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2 group">
+        <Link href="/" className="flex items-center space-x-2 group" data-testid="link-home">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
             <Video className="text-white h-5 w-5" />
           </div>
-          <span className="text-xl font-bold font-display bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+          <span className="text-xl font-bold font-display bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70" data-testid="text-logo">
             VideoParty
           </span>
         </Link>
@@ -30,15 +30,16 @@ export function Navbar() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-primary/20 hover:ring-primary/50 transition-all p-0 overflow-hidden">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-primary/20 hover:ring-primary/50 transition-all p-0 overflow-hidden" data-testid="button-user-menu">
                   {user.profileImageUrl ? (
                     <img 
                       src={user.profileImageUrl} 
                       alt={user.firstName || "User"} 
                       className="h-full w-full object-cover"
+                      data-testid="img-user-avatar"
                     />
                   ) : (
-                    <UserCircle className="h-6 w-6 text-muted-foreground" />
+                    <UserCircle className="h-6 w-6 text-muted-foreground" data-testid="icon-user-placeholder" />
                   )}
                 </Button>
               </DropdownMenuTrigger>
@@ -52,15 +53,15 @@ export function Navbar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-white/10" />
-                <DropdownMenuItem className="text-red-400 focus:text-red-400 focus:bg-red-950/20 cursor-pointer" onClick={() => logout()}>
+                <DropdownMenuItem className="text-red-400 focus:text-red-400 focus:bg-red-950/20 cursor-pointer" onClick={() => logout()} data-testid="button-logout">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Çıkış Yap</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <a href="/api/login">
-              <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 hover:text-primary-foreground font-medium rounded-full px-6">
+            <a href="/api/login" data-testid="link-navbar-login">
+              <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 hover:text-primary-foreground font-medium rounded-full px-6" data-testid="button-navbar-login">
                 <LogIn className="mr-2 h-4 w-4" />
                 Giriş Yap
               </Button>

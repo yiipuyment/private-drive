@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRooms } from "@/hooks/use-rooms";
 import { Navbar } from "@/components/Navbar";
 import { CreateRoomDialog } from "@/components/CreateRoomDialog";
+import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Play, Users, Clock, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,7 +24,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-4xl sm:text-6xl lg:text-7xl font-bold font-display tracking-tight text-white mb-6"
+          className="text-4xl sm:text-6xl lg:text-7xl font-bold font-display tracking-tight mb-6 text-white"
         >
           Birlikte İzlemenin <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">
@@ -49,10 +50,10 @@ function HeroSection() {
           {user ? (
             <CreateRoomDialog />
           ) : (
-            <a href="/api/login">
-              <button className="bg-white text-black hover:bg-gray-200 font-bold py-4 px-8 rounded-full text-lg shadow-xl shadow-white/10 transition-transform hover:scale-105">
+            <a href="/api/login" data-testid="link-login">
+              <Button size="lg" className="bg-white text-black hover:bg-gray-200 font-bold px-8 rounded-full text-lg shadow-xl shadow-white/10" data-testid="button-start-free">
                 Hemen Başla — Ücretsiz
-              </button>
+              </Button>
             </a>
           )}
         </motion.div>
@@ -63,7 +64,7 @@ function HeroSection() {
 
 function RoomCard({ room }: { room: any }) {
   return (
-    <Link href={`/room/${room.id}`}>
+    <Link href={`/room/${room.id}`} data-testid={`link-room-${room.id}`}>
       <motion.div 
         whileHover={{ y: -4 }}
         className="group relative bg-card border border-white/5 rounded-2xl overflow-hidden shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all cursor-pointer h-full flex flex-col"
@@ -82,7 +83,7 @@ function RoomCard({ room }: { room: any }) {
         </div>
 
         <div className="p-6 relative z-20 flex flex-col flex-1">
-          <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors" data-testid={`text-room-name-${room.id}`}>
             {room.name}
           </h3>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-auto">
