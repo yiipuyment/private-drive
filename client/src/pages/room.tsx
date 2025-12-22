@@ -62,6 +62,59 @@ function isVideoFile(url: string): boolean {
   return videoExtensions.some(ext => url.toLowerCase().includes(ext));
 }
 
+// Helper to get Twitch channel/clip ID
+function getTwitchId(url: string): { type: 'channel' | 'video' | 'clip', id: string } | null {
+  if (!url) return null;
+  
+  const patterns = [
+    { regex: /twitch\.tv\/([a-zA-Z0-9_]+)(?:\/|$)/, type: 'channel' as const },
+    { regex: /twitch\.tv\/videos\/(\d+)/, type: 'video' as const },
+    { regex: /clips\.twitch\.tv\/([a-zA-Z0-9_-]+)/, type: 'clip' as const },
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern.regex);
+    if (match) {
+      return { type: pattern.type, id: match[1] };
+    }
+  }
+  return null;
+}
+
+// Helper to create Twitch embed URL
+function getTwitchEmbedUrl(id: string, type: 'channel' | 'video' | 'clip'): string {
+  const baseUrl = 'https://embed.twitch.tv';
+  
+  if (type === 'channel') {
+    return `${baseUrl}?channel=${id}&parent=${window.location.hostname}`;
+  } else if (type === 'video') {
+    return `${baseUrl}?video=${id}&parent=${window.location.hostname}`;
+  } else {
+    return `${baseUrl}?clip=${id}&parent=${window.location.hostname}`;
+  }
+}
+
+// Helper to get DailyMotion video ID
+function getDailyMotionId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /dailymotion\.com\/video\/([a-zA-Z0-9_-]+)/,
+    /dai\.ly\/([a-zA-Z0-9_-]+)/,
+    /^([a-zA-Z0-9_-]+)$/ // Direct video ID
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// Helper to create DailyMotion embed URL
+function getDailyMotionEmbedUrl(videoId: string): string {
+  return `https://www.dailymotion.com/embed/video/${videoId}`;
+}
+
 export default function Room() {
   const [, params] = useRoute("/room/:id");
   const roomId = params ? parseInt(params.id) : null;
@@ -299,6 +352,28 @@ export default function Room() {
                     onLoad={() => setIsReady(true)}
                     data-testid="video-player-vimeo"
                   />
+                ) : getTwitchId(videoUrl) ? (
+                  <iframe
+                    src={getTwitchEmbedUrl(getTwitchId(videoUrl)!.id, getTwitchId(videoUrl)!.type)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-twitch"
+                  />
+                ) : getDailyMotionId(videoUrl) ? (
+                  <iframe
+                    src={getDailyMotionEmbedUrl(getDailyMotionId(videoUrl)!)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-dailymotion"
+                  />
                 ) : isVideoFile(videoUrl) ? (
                   <video
                     width="100%"
@@ -329,7 +404,7 @@ export default function Room() {
                       console.error("Player error:", e);
                       toast({
                         title: "Video Oynatılamadı",
-                        description: "URL geçerli bir video değil veya erişilemiyor.",
+                        description: "URL geçerli bir video değil veya erişilemiyor. Başka bir link dene.",
                         variant: "destructive"
                       });
                     }}
@@ -345,7 +420,10 @@ export default function Room() {
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-muted-foreground">
                 <Play className="w-16 h-16 mb-4 opacity-50" />
-                <p>YouTube, Vimeo, MP4 veya web linklerini oynat</p>
+                <p className="text-center">
+                  <span className="block mb-2">YouTube, Vimeo, Twitch, DailyMotion</span>
+                  <span className="block text-sm text-muted-foreground/70">MP4 ve web videolarını oynat</span>
+                </p>
               </div>
             )}
             
