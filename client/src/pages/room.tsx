@@ -134,6 +134,7 @@ export default function Room() {
   const playerRef = useRef<ReactPlayer>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Anti-loop ref: prevent emitting events when update came from socket
   const isRemoteUpdate = useRef(false);
@@ -141,6 +142,23 @@ export default function Room() {
   const { sendMessage, subscribe, isConnected } = useWebSocket(roomId);
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Setup loading timeout - auto-complete loading after 3 seconds
+  useEffect(() => {
+    if (videoUrl && !isReady) {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsReady(true);
+      }, 3000);
+    }
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [videoUrl, isReady]);
 
   // Sync initial data
   useEffect(() => {
@@ -456,7 +474,7 @@ export default function Room() {
                 <Play className="w-16 h-16 mb-4 opacity-50" />
                 <p className="text-center">
                   <span className="block mb-2">YouTube, Vimeo, Twitch, DailyMotion</span>
-                  <span className="block text-sm text-muted-foreground/70">MP4 ve web videolarını oynat</span>
+                  <span className="block text-sm text-muted-foreground/70">Herhangi bir web videosunu oynat</span>
                 </p>
               </div>
             )}
