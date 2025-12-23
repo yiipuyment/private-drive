@@ -14,6 +14,47 @@ export async function registerRoutes(
   await setupAuth(app);
   registerAuthRoutes(app);
 
+  // === Proxy Route for Streaming Sites ===
+  app.get("/api/proxy", async (req, res) => {
+    try {
+      const targetUrl = req.query.url as string;
+      if (!targetUrl) {
+        return res.status(400).json({ message: "URL gerekli" });
+      }
+
+      // Validate URL
+      try {
+        new URL(targetUrl);
+      } catch {
+        return res.status(400).json({ message: "Geçersiz URL" });
+      }
+
+      // Fetch content from target URL
+      const response = await fetch(targetUrl as string, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Referer": "https://www.google.com/",
+        },
+      });
+
+      // Get content as buffer
+      const buffer = await response.arrayBuffer();
+
+      // Set response headers to allow embedding
+      res.set({
+        "Content-Type": response.headers.get("content-type") || "text/html; charset=utf-8",
+        "X-Frame-Options": "ALLOWALL",
+        "Access-Control-Allow-Origin": "*",
+      });
+
+      // Send response
+      res.send(Buffer.from(buffer));
+    } catch (err) {
+      console.error("Proxy error:", err);
+      res.status(500).json({ message: "Video yüklenemedi" });
+    }
+  });
+
   // === Room Routes ===
   app.get(api.rooms.list.path, async (req, res) => {
     const rooms = await storage.getRooms();

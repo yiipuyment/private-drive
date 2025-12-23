@@ -361,6 +361,14 @@ export default function Room() {
     // Throttled progress sync - only for occasional updates
   };
 
+  // Proxy URL for streaming sites
+  const getProxyUrl = (url: string): string => {
+    if (isStreamingSite(url)) {
+      return `/api/proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+
   if (authLoading || roomLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -456,30 +464,9 @@ export default function Room() {
                     <source src={videoUrl} />
                     Tarayıcınız HTML5 video oynatmayı desteklemiyor.
                   </video>
-                ) : isStreamingSite(videoUrl) ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-black gap-4">
-                    <AlertCircle className="w-12 h-12 text-orange-500" />
-                    <div className="text-center max-w-md px-4">
-                      <h3 className="text-lg font-bold text-white mb-2">Bu Site Gömülü Olarak Açılamıyor</h3>
-                      <p className="text-muted-foreground text-sm mb-4">
-                        Bu streaming sitesi gömülü (iframe) oynatmayı engelliyor. Sitede direkt izlemek için lütfen aşağıdaki butona tıklayın.
-                      </p>
-                      <Button 
-                        onClick={() => {
-                          window.open(videoUrl, '_blank');
-                          setIsReady(true);
-                        }}
-                        variant="default"
-                        className="gap-2"
-                      >
-                        <LinkIcon className="w-4 h-4" />
-                        Sitede Aç
-                      </Button>
-                    </div>
-                  </div>
                 ) : (
                   <iframe
-                    src={videoUrl}
+                    src={getProxyUrl(videoUrl)}
                     width="100%"
                     height="100%"
                     frameBorder="0"
@@ -489,8 +476,8 @@ export default function Room() {
                     onLoad={() => setIsReady(true)}
                     onError={() => {
                       toast({
-                        title: "Sayfa Yüklenemedi",
-                        description: "Bu link gömülü olarak açılamıyor. Sitede doğrudan izlemeyi deneyin.",
+                        title: "Video Yüklenemedi",
+                        description: "Bu link açılamıyor. Başka bir link deneyin.",
                         variant: "destructive"
                       });
                     }}
