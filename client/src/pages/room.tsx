@@ -115,6 +115,25 @@ function getDailyMotionEmbedUrl(videoId: string): string {
   return `https://www.dailymotion.com/embed/video/${videoId}`;
 }
 
+// Helper to detect streaming sites that block embedding
+function isStreamingSite(url: string): boolean {
+  if (!url) return false;
+  const streamingSites = [
+    'fullhdfilmiz',
+    'filmizlesene',
+    'dizibox',
+    'dizilla',
+    'hdfilm',
+    'filmmodu',
+    'sinefil',
+    'netflix',
+    'disneyplus',
+    'hulu',
+    'primevideo'
+  ];
+  return streamingSites.some(site => url.toLowerCase().includes(site));
+}
+
 export default function Room() {
   const [, params] = useRoute("/room/:id");
   const roomId = params ? parseInt(params.id) : null;
@@ -437,6 +456,27 @@ export default function Room() {
                     <source src={videoUrl} />
                     Tarayıcınız HTML5 video oynatmayı desteklemiyor.
                   </video>
+                ) : isStreamingSite(videoUrl) ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-black gap-4">
+                    <AlertCircle className="w-12 h-12 text-orange-500" />
+                    <div className="text-center max-w-md px-4">
+                      <h3 className="text-lg font-bold text-white mb-2">Bu Site Gömülü Olarak Açılamıyor</h3>
+                      <p className="text-muted-foreground text-sm mb-4">
+                        Bu streaming sitesi gömülü (iframe) oynatmayı engelliyor. Sitede direkt izlemek için lütfen aşağıdaki butona tıklayın.
+                      </p>
+                      <Button 
+                        onClick={() => {
+                          window.open(videoUrl, '_blank');
+                          setIsReady(true);
+                        }}
+                        variant="default"
+                        className="gap-2"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                        Sitede Aç
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <iframe
                     src={videoUrl}
