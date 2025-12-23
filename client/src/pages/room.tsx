@@ -136,11 +136,6 @@ export default function Room() {
   const [isReady, setIsReady] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Ad state
-  const [showAdModal, setShowAdModal] = useState(false);
-  const [adTimeLeft, setAdTimeLeft] = useState(5);
-  const adTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
   // Anti-loop ref: prevent emitting events when update came from socket
   const isRemoteUpdate = useRef(false);
   
@@ -344,20 +339,8 @@ export default function Room() {
   };
 
   const onProgress = (state: { playedSeconds: number }) => {
-    // Only sync occasionally or on seek? 
-    // Usually we don't sync every second via WS to avoid flooding, 
-    // but we can rely on play/pause/seek events for major syncs.
-    // If you want strict sync, you might emit here throttled.
+    // Throttled progress sync - only for occasional updates
   };
-
-  // Cleanup ad timeout on unmount or when modal closes
-  useEffect(() => {
-    return () => {
-      if (adTimeoutRef.current) {
-        clearInterval(adTimeoutRef.current);
-      }
-    };
-  }, []);
 
   if (authLoading || roomLoading) {
     return (
@@ -446,9 +429,10 @@ export default function Room() {
                     autoPlay={isPlaying}
                     onPlay={onPlay}
                     onPause={onPause}
-                    onEnded={onEnded}
                     className="w-full h-full"
                     data-testid="video-player-html5"
+                    preload="metadata"
+                    crossOrigin="anonymous"
                   >
                     <source src={videoUrl} />
                     Tarayıcınız HTML5 video oynatmayı desteklemiyor.
@@ -467,7 +451,6 @@ export default function Room() {
                     onPlay={onPlay}
                     onPause={onPause}
                     onProgress={onProgress}
-                    onEnded={onEnded}
                     onReady={() => setIsReady(true)}
                     onError={(e) => {
                       console.error("Player error:", e);
@@ -483,7 +466,10 @@ export default function Room() {
                           showinfo: 1,
                           modestbranding: 1,
                           iv_load_policy: 3,
-                          autoplay: isPlaying ? 1 : 0
+                          autoplay: isPlaying ? 1 : 0,
+                          fs: 1,
+                          rel: 0,
+                          cc_load_policy: 0
                         }
                       },
                       vimeo: {
@@ -491,13 +477,17 @@ export default function Room() {
                           title: false,
                           byline: false,
                           portrait: false,
-                          autoplay: isPlaying
+                          autoplay: isPlaying,
+                          transparent: true,
+                          allowfullscreen: true
                         }
                       },
                       dailymotion: {
                         params: {
                           autoplay: isPlaying ? 1 : 0,
-                          sharing: 1
+                          sharing: 1,
+                          ui: 1,
+                          logo: 1
                         }
                       },
                       html5: {
@@ -530,24 +520,6 @@ export default function Room() {
             {!isConnected && (
               <div className="absolute top-4 right-4 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-lg z-10">
                 Bağlantı koptu
-              </div>
-            )}
-
-            {/* Ad Modal */}
-            {showAdModal && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-50">
-                <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-2xl p-8 text-center max-w-sm">
-                  <h2 className="text-2xl font-bold text-white mb-4">Reklam İzletiliyor</h2>
-                  <div className="mb-6 text-5xl font-bold text-primary">{adTimeLeft}</div>
-                  <p className="text-muted-foreground mb-6">Reklamı izledikten sonra video oynatmaya devam edebilirsiniz</p>
-                  <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-4">
-                    <div 
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${(adTimeLeft / 5) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">Ödeme işleniyor...</p>
-                </div>
               </div>
             )}
           </div>
