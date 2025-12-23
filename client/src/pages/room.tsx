@@ -411,21 +411,21 @@ export default function Room() {
                         variant: "destructive"
                       });
                     }}
-                    onBuffer={() => console.log("Video buffering...")}
-                    onBufferEnd={() => console.log("Buffer ready")}
                     config={{
                       youtube: {
                         playerVars: {
                           showinfo: 1,
                           modestbranding: 1,
-                          iv_load_policy: 3
+                          iv_load_policy: 3,
+                          autoplay: isPlaying ? 1 : 0
                         }
                       },
                       vimeo: {
                         playerOptions: {
                           title: false,
                           byline: false,
-                          portrait: false
+                          portrait: false,
+                          autoplay: isPlaying
                         }
                       },
                       dailymotion: {
@@ -434,21 +434,11 @@ export default function Room() {
                           sharing: 1
                         }
                       },
-                      mixcloud: {
-                        options: {
-                          hide_cover: false
-                        }
-                      },
-                      twitch: {
-                        options: {
-                          interactive: false
-                        }
-                      },
                       html5: {
                         attributes: {
                           controlsList: "nodownload",
                           crossOrigin: "anonymous",
-                          preload: "auto"
+                          preload: "metadata"
                         }
                       }
                     }}
