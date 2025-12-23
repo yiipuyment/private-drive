@@ -117,7 +117,7 @@ export async function registerRoutes(
     }
   });
 
-  const clients = new Map<WebSocket, { roomId: number }>();
+  const clients = new Map<WebSocket, { roomId: number; userId?: string; userName?: string }>();
 
   wss.on("connection", (ws) => {
     console.log("New WebSocket connection");
@@ -126,10 +126,21 @@ export async function registerRoutes(
       try {
         const message = JSON.parse(data.toString());
         
-        if (message.type === "join") {
-          const roomId = message.roomId;
-          clients.set(ws, { roomId });
-          console.log(`Client joined room ${roomId}`);
+        if (message.type === "join_room") {
+          const { roomId, userId, userName } = message;
+          clients.set(ws, { roomId, userId, userName });
+          console.log(`Client ${userId} joined room ${roomId}`);
+          
+          // Broadcast user_joined to others in same room
+          for (const [client, metadata] of clients.entries()) {
+            if (client !== ws && client.readyState === WebSocket.OPEN && metadata.roomId === roomId) {
+              client.send(JSON.stringify({
+                type: "user_joined",
+                userName: userName || "Anonim",
+                userId
+              }));
+            }
+          }
         } else if (message.type === "video-update") {
           const { roomId, ...videoState } = message; // playing, time, url
           // Broadcast to others in the same room
@@ -171,7 +182,22 @@ export async function registerRoutes(
     });
 
     ws.on("close", () => {
-      clients.delete(ws);
+      const clientMeta = clients.get(ws);
+      if (clientMeta) {
+        const { roomId, userId, userName } = clientMeta;
+        clients.delete(ws);
+        
+        // Broadcast user_left to others in same room
+        for (const [client, metadata] of clients.entries()) {
+          if (client.readyState === WebSocket.OPEN && metadata.roomId === roomId) {
+            client.send(JSON.stringify({
+              type: "user_left",
+              userName: userName || "Anonim",
+              userId
+            }));
+          }
+        }
+      }
     });
   });
 

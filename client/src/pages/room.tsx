@@ -160,14 +160,24 @@ export default function Room() {
     };
   }, [videoUrl, isReady]);
 
-  // Sync initial data
+  // Sync initial data and send join notification
   useEffect(() => {
     if (room) {
       setVideoUrl(room.currentVideoUrl || "");
       setUrlInput(room.currentVideoUrl || "");
       setIsPlaying(room.isPlaying || false);
     }
-  }, [room]);
+    
+    // Send join_room message with user info
+    if (roomId && user) {
+      sendMessage({
+        type: "join_room",
+        roomId,
+        userId: user.id,
+        userName: user.email?.split("@")[0] || "Anonim"
+      });
+    }
+  }, [room, roomId, user, sendMessage]);
 
   useEffect(() => {
     if (initialMessages) {
@@ -195,6 +205,28 @@ export default function Room() {
           roomId,
           createdAt: data.createdAt,
           user: data.user
+        }]);
+      }
+
+      if (data.type === "user_joined") {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          content: `${data.userName} odaya katıldı`,
+          userId: "system",
+          roomId: roomId || 0,
+          createdAt: new Date().toISOString(),
+          user: { id: "system", email: "system" }
+        }]);
+      }
+
+      if (data.type === "user_left") {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          content: `${data.userName} odadan çıktı`,
+          userId: "system",
+          roomId: roomId || 0,
+          createdAt: new Date().toISOString(),
+          user: { id: "system", email: "system" }
         }]);
       }
 
@@ -465,7 +497,7 @@ export default function Room() {
                 {!isReady && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 pointer-events-none">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                    <p className="text-muted-foreground text-sm">Video yükleniyor...</p>
+                    <p className="text-muted-foreground text-sm">Video açılıyor... (biraz bekle)</p>
                   </div>
                 )}
               </>
