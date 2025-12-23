@@ -22,7 +22,7 @@ export function Navbar() {
             <Video className="text-white h-5 w-5" />
           </div>
           <span className="text-xl font-bold font-display bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70" data-testid="text-logo">
-            VideoParty
+            Private Drive
           </span>
         </Link>
 
