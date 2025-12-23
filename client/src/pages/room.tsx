@@ -396,6 +396,9 @@ export default function Room() {
                     height="100%"
                     playing={isPlaying}
                     controls
+                    progressInterval={500}
+                    playsinline={true}
+                    pip={false}
                     onPlay={onPlay}
                     onPause={onPause}
                     onProgress={onProgress}
@@ -404,9 +407,50 @@ export default function Room() {
                       console.error("Player error:", e);
                       toast({
                         title: "Video Oynatılamadı",
-                        description: "URL geçerli bir video değil veya erişilemiyor. Başka bir link dene.",
+                        description: "Bu URL'deki video oynatılamıyor. Başka bir link dene.",
                         variant: "destructive"
                       });
+                    }}
+                    onBuffer={() => console.log("Video buffering...")}
+                    onBufferEnd={() => console.log("Buffer ready")}
+                    config={{
+                      youtube: {
+                        playerVars: {
+                          showinfo: 1,
+                          modestbranding: 1,
+                          iv_load_policy: 3
+                        }
+                      },
+                      vimeo: {
+                        playerOptions: {
+                          title: false,
+                          byline: false,
+                          portrait: false
+                        }
+                      },
+                      dailymotion: {
+                        params: {
+                          autoplay: isPlaying ? 1 : 0,
+                          sharing: 1
+                        }
+                      },
+                      mixcloud: {
+                        options: {
+                          hide_cover: false
+                        }
+                      },
+                      twitch: {
+                        options: {
+                          interactive: false
+                        }
+                      },
+                      html5: {
+                        attributes: {
+                          controlsList: "nodownload",
+                          crossOrigin: "anonymous",
+                          preload: "auto"
+                        }
+                      }
                     }}
                   />
                 )}
