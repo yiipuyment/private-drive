@@ -438,95 +438,25 @@ export default function Room() {
                     Tarayıcınız HTML5 video oynatmayı desteklemiyor.
                   </video>
                 ) : (
-                  // Fallback iframe for streaming sites and generic URLs
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-black">
-                    <iframe
-                      src={videoUrl}
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      allowFullScreen
-                      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                      className="absolute inset-0"
-                      onLoad={() => setIsReady(true)}
-                      onError={() => {
-                        toast({
-                          title: "Sayfa Yüklenemedi",
-                          description: "Bu link gömülü olarak açılamıyor. Sitede doğrudan izlemeyi deneyin.",
-                          variant: "destructive"
-                        });
-                      }}
-                      data-testid="video-player-iframe-fallback"
-                      title="Web video player"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                )}
-                {!isReady && !(getYouTubeVideoId(videoUrl) || getVimeoVideoId(videoUrl) || getTwitchId(videoUrl) || getDailyMotionId(videoUrl) || isVideoFile(videoUrl)) && (
-                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                    <p className="text-muted-foreground text-sm">Video yükleniyor...</p>
-                  </ReactPlayer>
-                ) : (
-                  <ReactPlayer
-                    ref={playerRef}
-                    url={videoUrl}
+                  <iframe
+                    src={videoUrl}
                     width="100%"
                     height="100%"
-                    playing={isPlaying}
-                    controls
-                    progressInterval={500}
-                    playsinline={true}
-                    pip={false}
-                    onPlay={onPlay}
-                    onPause={onPause}
-                    onProgress={onProgress}
-                    onReady={() => setIsReady(true)}
-                    onError={(e) => {
-                      console.error("Player error:", e);
+                    frameBorder="0"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    className="w-full h-full"
+                    onLoad={() => setIsReady(true)}
+                    onError={() => {
                       toast({
-                        title: "Video Oynatılamadı",
-                        description: "Bu URL'deki video oynatılamıyor. Başka bir link dene.",
+                        title: "Sayfa Yüklenemedi",
+                        description: "Bu link gömülü olarak açılamıyor. Sitede doğrudan izlemeyi deneyin.",
                         variant: "destructive"
                       });
                     }}
-                    config={{
-                      youtube: {
-                        playerVars: {
-                          showinfo: 1,
-                          modestbranding: 1,
-                          iv_load_policy: 3,
-                          autoplay: isPlaying ? 1 : 0,
-                          fs: 1,
-                          rel: 0,
-                          cc_load_policy: 0
-                        }
-                      },
-                      vimeo: {
-                        playerOptions: {
-                          title: false,
-                          byline: false,
-                          portrait: false,
-                          autoplay: isPlaying,
-                          transparent: true,
-                          allowfullscreen: true
-                        }
-                      },
-                      dailymotion: {
-                        params: {
-                          autoplay: isPlaying ? 1 : 0,
-                          sharing: 1,
-                          ui: 1,
-                          logo: 1
-                        }
-                      },
-                      html5: {
-                        attributes: {
-                          controlsList: "nodownload",
-                          crossOrigin: "anonymous",
-                          preload: "metadata"
-                        }
-                      }
-                    }}
+                    data-testid="video-player-iframe-fallback"
+                    title="Web video player"
+                    referrerPolicy="no-referrer"
                   />
                 )}
                 {!isReady && (
