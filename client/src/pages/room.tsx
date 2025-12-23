@@ -438,6 +438,35 @@ export default function Room() {
                     Tarayıcınız HTML5 video oynatmayı desteklemiyor.
                   </video>
                 ) : (
+                  // Fallback iframe for streaming sites and generic URLs
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+                    <iframe
+                      src={videoUrl}
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      allowFullScreen
+                      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                      className="absolute inset-0"
+                      onLoad={() => setIsReady(true)}
+                      onError={() => {
+                        toast({
+                          title: "Sayfa Yüklenemedi",
+                          description: "Bu link gömülü olarak açılamıyor. Sitede doğrudan izlemeyi deneyin.",
+                          variant: "destructive"
+                        });
+                      }}
+                      data-testid="video-player-iframe-fallback"
+                      title="Web video player"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
+                {!isReady && !(getYouTubeVideoId(videoUrl) || getVimeoVideoId(videoUrl) || getTwitchId(videoUrl) || getDailyMotionId(videoUrl) || isVideoFile(videoUrl)) && (
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                    <p className="text-muted-foreground text-sm">Video yükleniyor...</p>
+                  </ReactPlayer>
+                ) : (
                   <ReactPlayer
                     ref={playerRef}
                     url={videoUrl}
@@ -511,8 +540,8 @@ export default function Room() {
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-muted-foreground">
                 <Play className="w-16 h-16 mb-4 opacity-50" />
                 <p className="text-center">
-                  <span className="block mb-2">YouTube, Vimeo, Twitch, DailyMotion</span>
-                  <span className="block text-sm text-muted-foreground/70">Herhangi bir web videosunu oynat</span>
+                  <span className="block mb-2">YouTube, Vimeo, Twitch, DailyMotion ve Daha Fazlası</span>
+                  <span className="block text-sm text-muted-foreground/70">Herhangi bir video sitesini gömülü olarak aç</span>
                 </p>
               </div>
             )}
@@ -532,7 +561,7 @@ export default function Room() {
                   <Input 
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
-                    placeholder="Video URL yapıştır (YouTube, Twitch, Vimeo...)" 
+                    placeholder="Video URL yapıştır (YouTube, Twitch, Vimeo, fullhdfilmizlesene.tv vb...)" 
                     className="pl-10 bg-background border-white/10"
                   />
                 </div>
