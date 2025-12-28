@@ -118,7 +118,7 @@ export async function registerRoutes(
   const existingRooms = await storage.getRooms();
   if (existingRooms.length === 0) {
     try {
-      const systemUser = await authStorage.upsertUser({
+      const systemUser = await storage.upsertUser({
         id: "system",
         email: "system@video.party",
         firstName: "Sistem",
