@@ -169,8 +169,12 @@ export async function registerRoutes(
         
         if (message.type === "join_room") {
           const { roomId, userId, userName } = message;
-          clients.set(ws, { roomId, userId, userName });
-          console.log(`Client ${userId} joined room ${roomId}`);
+          if (!userId) {
+            console.error("WebSocket join_room: userId is missing");
+            return;
+          }
+          clients.set(ws, { roomId, userId, userName: userName || "Anonim" });
+          console.log(`Client ${userId} (${userName}) joined room ${roomId}`);
           
           // Broadcast user_joined to others in same room
           for (const [client, metadata] of clients.entries()) {

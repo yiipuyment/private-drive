@@ -188,15 +188,16 @@ export default function Room() {
     }
     
     // Send join_room message with user info
-    if (roomId && user) {
+    if (roomId && user && isConnected) {
+      console.log("Sending join_room for user:", user.id);
       sendMessage({
         type: "join_room",
         roomId,
         userId: user.id,
-        userName: user.email?.split("@")[0] || "Anonim"
+        userName: user.firstName || user.email?.split("@")[0] || "Anonim"
       });
     }
-  }, [room, roomId, user, sendMessage]);
+  }, [room, roomId, user, sendMessage, isConnected]);
 
   useEffect(() => {
     if (initialMessages) {
