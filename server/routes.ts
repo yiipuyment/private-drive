@@ -182,8 +182,8 @@ export async function registerRoutes(
               }));
             }
           }
-        } else if (message.type === "video-update" || message.type === "video_update") {
-          const { roomId, userId, ...videoState } = message; // playing, time, url
+        } else if (message.type === "video_update") {
+          const { roomId, userId, ...videoState } = message; // playing, timestamp, url
           
           // Verify if the user is the host
           const room = await storage.getRoom(roomId);
@@ -196,9 +196,10 @@ export async function registerRoutes(
             });
 
             // Broadcast to others in the same room
+            const broadcastMsg = JSON.stringify({ type: "video_update", ...videoState });
             for (const [client, metadata] of clients.entries()) {
               if (client !== ws && client.readyState === WebSocket.OPEN && metadata.roomId === roomId) {
-                client.send(JSON.stringify({ type: "video_update", ...videoState }));
+                client.send(broadcastMsg);
               }
             }
           }

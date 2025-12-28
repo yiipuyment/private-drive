@@ -250,6 +250,7 @@ export default function Room() {
       }
 
       if (data.type === "video_update") {
+        console.log("Video update received:", data);
         isRemoteUpdate.current = true;
         
         if (data.url && data.url !== videoUrl) {
@@ -259,14 +260,17 @@ export default function Room() {
 
         setIsPlaying(data.isPlaying);
         
-        if (playerRef.current && Math.abs(playerRef.current.getCurrentTime() - data.timestamp) > 2) {
-          playerRef.current.seekTo(data.timestamp, 'seconds');
+        if (playerRef.current && data.timestamp !== undefined) {
+          const currentTime = playerRef.current.getCurrentTime();
+          if (Math.abs(currentTime - data.timestamp) > 2) {
+            playerRef.current.seekTo(data.timestamp, 'seconds');
+          }
         }
 
         // Reset flag after a short delay to allow React to process state
         setTimeout(() => {
           isRemoteUpdate.current = false;
-        }, 500);
+        }, 1000);
       }
     });
 
