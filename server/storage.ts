@@ -8,19 +8,16 @@ export interface IStorage extends IAuthStorage {
   createRoom(room: InsertRoom): Promise<Room>;
   getRooms(): Promise<Room[]>;
   getRoom(id: number): Promise<Room | undefined>;
+  updateRoom(id: number, update: Partial<Room>): Promise<Room>;
   deleteRoom(id: number): Promise<void>;
   
   // Messages
   createMessage(message: InsertMessage): Promise<Message>;
   getMessages(roomId: number): Promise<(Message & { user: User })[]>;
-  updateRoom(id: number, update: Partial<Room>): Promise<Room>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // Auth methods (delegated or re-implemented if needed, but we can reuse the mixin pattern or just implement)
-  // Since we are using the blueprint's authStorage, we can just use it or implement the methods.
-  // Ideally, we extend or compose.
-  
+  // Auth methods
   async getUser(id: string): Promise<User | undefined> {
     return authStorage.getUser(id);
   }
@@ -79,7 +76,6 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(users, eq(messages.userId, users.id))
       .orderBy(messages.createdAt);
 
-    // Filter out null users if any (shouldn't happen with proper constraints) and flatten
     return results
       .filter(r => r.user !== null)
       .map(r => ({ ...r.message, user: r.user! }));

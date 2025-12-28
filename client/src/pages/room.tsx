@@ -252,6 +252,12 @@ export default function Room() {
 
       if (data.type === "video_update") {
         console.log("Video update received:", data);
+        
+        // Host should ignore their own broadcasted messages to avoid loops
+        if (room && user?.id === room.hostId && !isRemoteUpdate.current) {
+          return;
+        }
+
         isRemoteUpdate.current = true;
         
         if (data.url && data.url !== videoUrl) {
@@ -263,12 +269,13 @@ export default function Room() {
         
         if (playerRef.current && data.timestamp !== undefined) {
           const currentTime = playerRef.current.getCurrentTime();
+          // Sync if difference is more than 2 seconds
           if (Math.abs(currentTime - data.timestamp) > 2) {
             playerRef.current.seekTo(data.timestamp, 'seconds');
           }
         }
 
-        // Reset flag after a short delay to allow React to process state
+        // Reset flag after a short delay
         setTimeout(() => {
           isRemoteUpdate.current = false;
         }, 1000);

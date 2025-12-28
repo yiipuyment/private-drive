@@ -193,16 +193,20 @@ export async function registerRoutes(
           const room = await storage.getRoom(roomId);
           if (room && room.hostId === userId) {
             // Update room state in DB
-            await storage.updateRoom(roomId, {
-              currentVideoUrl: videoState.url,
-              isPlaying: videoState.isPlaying,
-              videoTimestamp: Math.floor(videoState.timestamp || 0)
-            });
+            try {
+              await storage.updateRoom(roomId, {
+                currentVideoUrl: videoState.url,
+                isPlaying: videoState.isPlaying,
+                videoTimestamp: Math.floor(videoState.timestamp || 0)
+              });
+            } catch (err) {
+              console.error("Error updating room state:", err);
+            }
 
-            // Broadcast to others in the same room
+            // Broadcast to everyone in the room (including host for confirmation)
             const broadcastMsg = JSON.stringify({ type: "video_update", ...videoState });
             for (const [client, metadata] of clients.entries()) {
-              if (client !== ws && client.readyState === WebSocket.OPEN && metadata.roomId === roomId) {
+              if (client.readyState === WebSocket.OPEN && metadata.roomId === roomId) {
                 client.send(broadcastMsg);
               }
             }
