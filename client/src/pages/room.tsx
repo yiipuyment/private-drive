@@ -150,7 +150,7 @@ export default function Room() {
   const [copied, setCopied] = useState(false);
 
   // Player state
-  const playerRef = useRef<ReactPlayer>(null);
+  const playerRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -322,7 +322,7 @@ export default function Room() {
       setVideoUrl(finalUrl);
       setUrlInput(finalUrl);
       sendMessage({
-        type: "video-update",
+        type: "video_update",
         roomId,
         isPlaying: true,
         timestamp: 0,
@@ -335,7 +335,7 @@ export default function Room() {
       if (!isRemoteUpdate.current && roomId) {
         setIsPlaying(true);
         sendMessage({
-          type: "video-update",
+          type: "video_update",
           roomId,
           isPlaying: true,
           timestamp: playerRef.current?.getCurrentTime() || 0,
@@ -348,7 +348,7 @@ export default function Room() {
       if (!isRemoteUpdate.current && roomId) {
         setIsPlaying(false);
         sendMessage({
-          type: "video-update",
+          type: "video_update",
           roomId,
           isPlaying: false,
           timestamp: playerRef.current?.getCurrentTime() || 0,
