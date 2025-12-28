@@ -13,6 +13,7 @@ export interface IStorage extends IAuthStorage {
   // Messages
   createMessage(message: InsertMessage): Promise<Message>;
   getMessages(roomId: number): Promise<(Message & { user: User })[]>;
+  updateRoom(id: number, update: Partial<Room>): Promise<Room>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -41,6 +42,19 @@ export class DatabaseStorage implements IStorage {
   async getRoom(id: number): Promise<Room | undefined> {
     const [room] = await db.select().from(rooms).where(eq(rooms.id, id));
     return room;
+  }
+
+  async updateRoom(id: number, update: Partial<Room>): Promise<Room> {
+    const [updatedRoom] = await db
+      .update(rooms)
+      .set(update)
+      .where(eq(rooms.id, id))
+      .returning();
+    
+    if (!updatedRoom) {
+      throw new Error(`Room ${id} not found`);
+    }
+    return updatedRoom;
   }
 
   async deleteRoom(id: number): Promise<void> {
