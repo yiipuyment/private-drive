@@ -324,6 +324,7 @@ export default function Room() {
     sendMessage({
       type: "video_update",
       roomId,
+      userId: user.id,
       isPlaying: true,
       timestamp: 0,
       url: finalUrl
@@ -332,11 +333,12 @@ export default function Room() {
 
   // Player Callbacks
   const onPlay = () => {
-    if (!isRemoteUpdate.current && roomId) {
+    if (!isRemoteUpdate.current && roomId && user) {
       setIsPlaying(true);
       sendMessage({
         type: "video_update",
         roomId,
+        userId: user.id,
         isPlaying: true,
         timestamp: playerRef.current?.getCurrentTime() || 0,
         url: videoUrl
@@ -345,11 +347,12 @@ export default function Room() {
   };
 
   const onPause = () => {
-    if (!isRemoteUpdate.current && roomId) {
+    if (!isRemoteUpdate.current && roomId && user) {
       setIsPlaying(false);
       sendMessage({
         type: "video_update",
         roomId,
+        userId: user.id,
         isPlaying: false,
         timestamp: playerRef.current?.getCurrentTime() || 0,
         url: videoUrl
@@ -399,7 +402,7 @@ export default function Room() {
       <main className="flex-1 container mx-auto p-4 lg:p-6 grid lg:grid-cols-4 gap-6 h-[calc(100vh-64px)]">
         {/* Left: Video Player */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <div className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-white/5 aspect-video relative group bg-black">
+          <div className={`bg-card rounded-2xl overflow-hidden shadow-2xl border border-white/5 aspect-video relative group bg-black ${room.hostId !== user.id ? 'pointer-events-none' : ''}`}>
             {videoUrl ? (
               <>
                 {getYouTubeVideoId(videoUrl) ? (
@@ -518,13 +521,16 @@ export default function Room() {
                   <Input 
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
-                    placeholder="Video URL yapıştır (YouTube, Twitch, Vimeo, fullhdfilmizlesene.tv vb...)" 
+                    placeholder={room.hostId === user.id ? "Video URL yapıştır..." : "Sadece oda sahibi video değiştirebilir"} 
+                    disabled={room.hostId !== user.id}
                     className="pl-10 bg-background border-white/10"
                   />
                 </div>
-                <Button type="submit" variant="secondary" className="hover:bg-primary hover:text-white transition-colors">
-                  Yükle
-                </Button>
+                {room.hostId === user.id && (
+                  <Button type="submit" variant="secondary" className="hover:bg-primary hover:text-white transition-colors">
+                    Yükle
+                  </Button>
+                )}
               </form>
             </div>
           </div>
