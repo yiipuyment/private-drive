@@ -401,7 +401,7 @@ export default function Room() {
         <div className="lg:col-span-3 flex flex-col gap-4">
           <div className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-white/5 aspect-video relative group bg-black">
             {videoUrl ? (
-              <div className="w-full h-full relative">
+              <div className="absolute inset-0 w-full h-full">
                 <ReactPlayer
                   ref={playerRef}
                   url={videoUrl}
@@ -414,7 +414,12 @@ export default function Room() {
                   onReady={() => setIsReady(true)}
                   config={ {
                     youtube: {
-                      playerVars: { showinfo: 1, modestbranding: 1 }
+                      playerVars: { 
+                        showinfo: 1, 
+                        modestbranding: 1,
+                        rel: 0,
+                        origin: typeof window !== 'undefined' ? window.location.origin : '' 
+                      }
                     }
                   } }
                 />
