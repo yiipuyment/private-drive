@@ -182,12 +182,12 @@ export async function registerRoutes(
               }));
             }
           }
-        } else if (message.type === "video_update") {
+        } else if (message.type === "video-update") {
           const { roomId, ...videoState } = message; // playing, time, url
           // Broadcast to others in the same room
           for (const [client, metadata] of clients.entries()) {
             if (client !== ws && client.readyState === WebSocket.OPEN && metadata.roomId === roomId) {
-              client.send(JSON.stringify({ type: "video_update", ...videoState }));
+              client.send(JSON.stringify({ type: "video-update", ...videoState }));
             }
           }
         } else if (message.type === "chat_message") {

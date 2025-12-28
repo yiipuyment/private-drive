@@ -150,7 +150,7 @@ export default function Room() {
   const [copied, setCopied] = useState(false);
 
   // Player state
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<ReactPlayer>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -211,151 +211,151 @@ export default function Room() {
     }
   }, [messages]);
 
-    // Handle WebSocket messages
-    useEffect(() => {
-      const unsubscribe = subscribe((data) => {
-        console.log("WS Received:", data);
-  
-        if (data.type === "chat_message") {
-          setMessages(prev => [...prev, {
-            id: Date.now(),
-            content: data.content,
-            userId: data.userId,
-            roomId,
-            createdAt: data.createdAt,
-            user: data.user
-          }]);
+  // Handle WebSocket messages
+  useEffect(() => {
+    const unsubscribe = subscribe((data) => {
+      console.log("WS Received:", data);
+
+      if (data.type === "chat_message") {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          content: data.content,
+          userId: data.userId,
+          roomId,
+          createdAt: data.createdAt,
+          user: data.user
+        }]);
+      }
+
+      if (data.type === "user_joined") {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          content: `${data.userName} odaya katıldı`,
+          userId: "system",
+          roomId: roomId || 0,
+          createdAt: new Date().toISOString(),
+          user: { id: "system", email: "system" }
+        }]);
+      }
+
+      if (data.type === "user_left") {
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          content: `${data.userName} odadan çıktı`,
+          userId: "system",
+          roomId: roomId || 0,
+          createdAt: new Date().toISOString(),
+          user: { id: "system", email: "system" }
+        }]);
+      }
+
+      if (data.type === "video_update") {
+        isRemoteUpdate.current = true;
+        
+        if (data.url && data.url !== videoUrl) {
+          setVideoUrl(data.url);
+          setUrlInput(data.url);
         }
-  
-        if (data.type === "user_joined") {
-          setMessages(prev => [...prev, {
-            id: Date.now(),
-            content: `${data.userName} odaya katıldı`,
-            userId: "system",
-            roomId: roomId || 0,
-            createdAt: new Date().toISOString(),
-            user: { id: "system", email: "system" }
-          }]);
+
+        setIsPlaying(data.isPlaying);
+        
+        if (playerRef.current && Math.abs(playerRef.current.getCurrentTime() - data.timestamp) > 2) {
+          playerRef.current.seekTo(data.timestamp, 'seconds');
         }
-  
-        if (data.type === "user_left") {
-          setMessages(prev => [...prev, {
-            id: Date.now(),
-            content: `${data.userName} odadan çıktı`,
-            userId: "system",
-            roomId: roomId || 0,
-            createdAt: new Date().toISOString(),
-            user: { id: "system", email: "system" }
-          }]);
-        }
-  
-        if (data.type === "video-update") {
-          isRemoteUpdate.current = true;
-          
-          if (data.url && data.url !== videoUrl) {
-            setVideoUrl(data.url);
-            setUrlInput(data.url);
-          }
-  
-          setIsPlaying(data.isPlaying);
-          
-          if (playerRef.current && Math.abs(playerRef.current.getCurrentTime() - data.timestamp) > 2) {
-            playerRef.current.seekTo(data.timestamp, 'seconds');
-          }
-  
-          // Reset flag after a short delay to allow React to process state
-          setTimeout(() => {
-            isRemoteUpdate.current = false;
-          }, 500);
-        }
-      });
-  
-      return unsubscribe;
-    }, [subscribe, videoUrl, roomId, queryClient]);
+
+        // Reset flag after a short delay to allow React to process state
+        setTimeout(() => {
+          isRemoteUpdate.current = false;
+        }, 500);
+      }
+    });
+
+    return unsubscribe;
+  }, [subscribe, videoUrl, roomId, queryClient]);
 
 
-    const handleSendChat = (e?: React.FormEvent) => {
-      e?.preventDefault();
-      if (!chatInput.trim() || !roomId || !user) return;
-  
-      sendMessage({
-        type: "chat_message",
-        roomId,
-        content: chatInput,
-        userId: user.id,
-      });
-      setChatInput("");
-    };
-  
-    const handleShareLink = () => {
-      const shareUrl = `${window.location.origin}/room/${roomId}`;
-      navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({
-        title: "Linki kopyaladı",
-        description: "Arkadaşlarınla paylaş!",
-      });
-    };
-  
-    const handleCloseRoom = () => {
-      if (window.confirm("Odayı kapatmak istediğine emin misin?")) {
-        deleteRoom.mutate(roomId || 0);
-      }
-    };
-  
-    const handleUrlChange = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!urlInput || !roomId) return;
-      
-      // Validate and normalize URL
-      let finalUrl = urlInput.trim();
-      
-      // Check if it's a YouTube URL and normalize it
-      const youtubeId = getYouTubeVideoId(finalUrl);
-      if (youtubeId) {
-        finalUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
-      } else if (!finalUrl.startsWith('http')) {
-        finalUrl = `https://${finalUrl}`;
-      }
-      
-      setVideoUrl(finalUrl);
-      setUrlInput(finalUrl);
+  const handleSendChat = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || !roomId || !user) return;
+
+    sendMessage({
+      type: "chat_message",
+      roomId,
+      content: chatInput,
+      userId: user.id,
+    });
+    setChatInput("");
+  };
+
+  const handleShareLink = () => {
+    const shareUrl = `${window.location.origin}/room/${roomId}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "Linki kopyaladı",
+      description: "Arkadaşlarınla paylaş!",
+    });
+  };
+
+  const handleCloseRoom = () => {
+    if (window.confirm("Odayı kapatmak istediğine emin misin?")) {
+      deleteRoom.mutate(roomId || 0);
+    }
+  };
+
+  const handleUrlChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!urlInput || !roomId) return;
+    
+    // Validate and normalize URL
+    let finalUrl = urlInput.trim();
+    
+    // Check if it's a YouTube URL and normalize it
+    const youtubeId = getYouTubeVideoId(finalUrl);
+    if (youtubeId) {
+      finalUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+    } else if (!finalUrl.startsWith('http')) {
+      finalUrl = `https://${finalUrl}`;
+    }
+    
+    setVideoUrl(finalUrl);
+    setUrlInput(finalUrl);
+    sendMessage({
+      type: "video_update",
+      roomId,
+      isPlaying: true,
+      timestamp: 0,
+      url: finalUrl
+    });
+  };
+
+  // Player Callbacks
+  const onPlay = () => {
+    if (!isRemoteUpdate.current && roomId) {
+      setIsPlaying(true);
       sendMessage({
         type: "video_update",
         roomId,
         isPlaying: true,
-        timestamp: 0,
-        url: finalUrl
+        timestamp: playerRef.current?.getCurrentTime() || 0,
+        url: videoUrl
       });
-    };
-  
-    // Player Callbacks
-    const onPlay = () => {
-      if (!isRemoteUpdate.current && roomId) {
-        setIsPlaying(true);
-        sendMessage({
-          type: "video_update",
-          roomId,
-          isPlaying: true,
-          timestamp: playerRef.current?.getCurrentTime() || 0,
-          url: videoUrl
-        });
-      }
-    };
-  
-    const onPause = () => {
-      if (!isRemoteUpdate.current && roomId) {
-        setIsPlaying(false);
-        sendMessage({
-          type: "video_update",
-          roomId,
-          isPlaying: false,
-          timestamp: playerRef.current?.getCurrentTime() || 0,
-          url: videoUrl
-        });
-      }
-    };
+    }
+  };
+
+  const onPause = () => {
+    if (!isRemoteUpdate.current && roomId) {
+      setIsPlaying(false);
+      sendMessage({
+        type: "video_update",
+        roomId,
+        isPlaying: false,
+        timestamp: playerRef.current?.getCurrentTime() || 0,
+        url: videoUrl
+      });
+    }
+  };
 
   const onProgress = (state: { playedSeconds: number }) => {
     // Throttled progress sync - only for occasional updates
@@ -401,29 +401,98 @@ export default function Room() {
         <div className="lg:col-span-3 flex flex-col gap-4">
           <div className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-white/5 aspect-video relative group bg-black">
             {videoUrl ? (
-              <div className="absolute inset-0 w-full h-full">
-                <ReactPlayer
-                  ref={playerRef}
-                  url={videoUrl}
-                  playing={isPlaying}
-                  controls={true}
-                  width="100%"
-                  height="100%"
-                  onPlay={onPlay}
-                  onPause={onPause}
-                  onReady={() => setIsReady(true)}
-                  config={ {
-                    youtube: {
-                      playerVars: { 
-                        showinfo: 1, 
-                        modestbranding: 1,
-                        rel: 0,
-                        origin: typeof window !== 'undefined' ? window.location.origin : '' 
-                      }
-                    }
-                  } }
-                />
-              </div>
+              <>
+                {getYouTubeVideoId(videoUrl) ? (
+                  <iframe
+                    src={getYouTubeEmbedUrl(getYouTubeVideoId(videoUrl)!)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media"
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-youtube"
+                  />
+                ) : getVimeoVideoId(videoUrl) ? (
+                  <iframe
+                    src={getVimeoEmbedUrl(getVimeoVideoId(videoUrl)!)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media"
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-vimeo"
+                  />
+                ) : getTwitchId(videoUrl) ? (
+                  <iframe
+                    src={getTwitchEmbedUrl(getTwitchId(videoUrl)!.id, getTwitchId(videoUrl)!.type)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-twitch"
+                  />
+                ) : getDailyMotionId(videoUrl) ? (
+                  <iframe
+                    src={getDailyMotionEmbedUrl(getDailyMotionId(videoUrl)!)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    className="absolute inset-0"
+                    onLoad={() => setIsReady(true)}
+                    data-testid="video-player-dailymotion"
+                  />
+                ) : isVideoFile(videoUrl) ? (
+                  <video
+                    width="100%"
+                    height="100%"
+                    controls
+                    autoPlay={isPlaying}
+                    onPlay={onPlay}
+                    onPause={onPause}
+                    className="w-full h-full"
+                    data-testid="video-player-html5"
+                    preload="metadata"
+                    crossOrigin="anonymous"
+                  >
+                    <source src={videoUrl} />
+                    Tarayıcınız HTML5 video oynatmayı desteklemiyor.
+                  </video>
+                ) : (
+                  <iframe
+                    src={getProxyUrl(videoUrl)}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    className="w-full h-full"
+                    onLoad={() => setIsReady(true)}
+                    onError={() => {
+                      toast({
+                        title: "Video Yüklenemedi",
+                        description: "Bu link açılamıyor. Başka bir link deneyin.",
+                        variant: "destructive"
+                      });
+                    }}
+                    data-testid="video-player-iframe-fallback"
+                    title="Web video player"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                {!isReady && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 pointer-events-none">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                    <p className="text-muted-foreground text-sm">Video açılıyor... (biraz bekle)</p>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-muted-foreground">
                 <Play className="w-16 h-16 mb-4 opacity-50" />
